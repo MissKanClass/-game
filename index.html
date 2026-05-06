@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>回覆投訴信互動遊戲 | 事務紀實文書寫作</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans TC', 'PingFang HK', 'Microsoft JhengHei', sans-serif;
+  background: #e8f0fe;
+  color: #1e293b;
+  min-height: 100vh;
+}
+
+/* ===== HEADER ===== */
+.site-header {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  color: #fff;
+  padding: 24px 20px 20px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+}
+.site-header h1 { font-size: 1.7rem; font-weight: 700; margin-bottom: 6px; }
+.site-header p { font-size: 0.95rem; opacity: 0.85; }
+
+/* ===== LOBBY ===== */
+#lobby {
+  max-width: 860px;
+  margin: 30px auto;
+  padding: 0 16px;
+}
+.game-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+  margin-top: 20px;
+}
+.game-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 22px 20px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.07);
+  cursor: pointer;
+  transition: transform 0.18s, box-shadow 0.18s;
+  border: 2px solid transparent;
+}
+.game-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(37,99,235,0.15);
+  border-color: #2563eb;
+}
+.game-card .icon { font-size: 2.4rem; margin-bottom: 10px; }
+.game-card h3 { font-size: 1.05rem; font-weight: 700; color: #1e3a8a; margin-bottom: 6px; }
+.game-card p { font-size: 0.85rem; color: #64748b; line-height: 1.5; }
+.game-card .badge {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.badge-mc { background: #dbeafe; color: #1d4ed8; }
+.badge-drag { background: #dcfce7; color: #15803d; }
+
+/* ===== GAME SCREEN ===== */
+#game-screen {
+  display: none;
+  max-width: 860px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+.game-panel {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px 28px 24px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.07);
+}
+
+/* Timer + progress */
+.game-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.timer-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef9c3;
+  border: 1.5px solid #fbbf24;
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #92400e;
+}
+.timer-box.danger { background: #fee2e2; border-color: #ef4444; color: #b91c1c; }
+.progress-bar-wrap {
+  flex: 1;
+  min-width: 140px;
+  background: #e2e8f0;
+  border-radius: 8px;
+  height: 10px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #7c3aed);
+  border-radius: 8px;
+  transition: width 0.4s;
+}
+.q-counter { font-size: 0.85rem; color: #64748b; white-space: nowrap; }
+
+/* Question */
+.q-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #7c3aed;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.q-text {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.65;
+  margin-bottom: 20px;
+  color: #1e293b;
+}
+.q-text .blank {
+  display: inline-block;
+  min-width: 80px;
+  border-bottom: 2px solid #2563eb;
+  color: #2563eb;
+  font-weight: 700;
+  text-align: center;
+  padding: 0 4px;
+}
+
+/* MC options */
+.options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+@media (max-width: 520px) { .options-grid { grid-template-columns: 1fr; } }
+.option-btn {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  line-height: 1.5;
+  color: #1e293b;
+}
+.option-btn:hover { border-color: #2563eb; background: #eff6ff; }
+.option-btn.selected { border-color: #2563eb; background: #dbeafe; }
+.option-btn.correct { border-color: #16a34a; background: #dcfce7; color: #15803d; }
+.option-btn.wrong { border-color: #dc2626; background: #fee2e2; color: #b91c1c; }
+
+/* Dropdown select */
+.select-wrap select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  background: #f8fafc;
+  color: #1e293b;
+  cursor: pointer;
+  margin-bottom: 14px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%232563eb' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+.select-wrap select.correct { border-color: #16a34a; background-color: #dcfce7; }
+.select-wrap select.wrong { border-color: #dc2626; background-color: #fee2e2; }
+
+/* Drag & Drop */
+.drag-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  min-height: 60px;
+  margin-bottom: 16px;
+}
+.drag-item {
+  background: #fff;
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  cursor: grab;
+  user-select: none;
+  transition: all 0.15s;
+  color: #1e293b;
+}
+.drag-item:hover { border-color: #2563eb; background: #eff6ff; }
+.drag-item.dragging { opacity: 0.4; cursor: grabbing; }
+.drag-item.placed { background: #dbeafe; border-color: #2563eb; color: #1d4ed8; }
+.drag-item.correct-placed { background: #dcfce7; border-color: #16a34a; color: #15803d; }
+.drag-item.wrong-placed { background: #fee2e2; border-color: #dc2626; color: #b91c1c; }
+
+.drop-zones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.drop-zone-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.drop-zone-label {
+  font-size: 0.9rem;
+  color: #475569;
+  min-width: 30px;
+  font-weight: 600;
+}
+.drop-zone {
+  flex: 1;
+  min-height: 44px;
+  border: 2px dashed #94a3b8;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: #f8fafc;
+  transition: all 0.15s;
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+.drop-zone.drag-over { border-color: #2563eb; background: #eff6ff; }
+.drop-zone.filled { border-style: solid; color: #1e293b; }
+.drop-zone.correct { border-color: #16a34a; background: #dcfce7; color: #15803d; }
+.drop-zone.wrong { border-color: #dc2626; background: #fee2e2; color: #b91c1c; }
+
+/* Feedback */
+.feedback {
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: none;
+}
+.feedback.show { display: block; }
+.feedback.correct { background: #dcfce7; color: #15803d; border: 1.5px solid #86efac; }
+.feedback.wrong { background: #fee2e2; color: #b91c1c; border: 1.5px solid #fca5a5; }
+
+/* Buttons */
+.btn {
+  padding: 11px 22px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-secondary { background: #e2e8f0; color: #475569; }
+.btn-secondary:hover { background: #cbd5e1; }
+.btn-success { background: #16a34a; color: #fff; }
+.btn-success:hover { background: #15803d; }
+.btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+
+/* Results screen */
+#result-screen {
+  display: none;
+  max-width: 600px;
+  margin: 30px auto;
+  padding: 0 16px;
+}
+.result-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 36px 32px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  text-align: center;
+}
+.result-emoji { font-size: 4rem; margin-bottom: 12px; }
+.result-title { font-size: 1.6rem; font-weight: 800; color: #1e3a8a; margin-bottom: 8px; }
+.result-score { font-size: 3rem; font-weight: 900; color: #2563eb; margin: 12px 0; }
+.result-detail { font-size: 0.95rem; color: #64748b; margin-bottom: 24px; }
+.share-box {
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+.share-box label { font-size: 0.8rem; font-weight: 700; color: #475569; display: block; margin-bottom: 6px; }
+.share-url-row { display: flex; gap: 8px; }
+.share-url-row input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #1e293b;
+  background: #fff;
+}
+.copy-btn {
+  padding: 8px 14px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.copy-btn:hover { background: #1d4ed8; }
+.share-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.share-btn {
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+.share-btn-wa { background: #25d366; color: #fff; }
+.share-btn-wa:hover { background: #1ebe5d; }
+.share-btn-copy { background: #7c3aed; color: #fff; }
+.share-btn-copy:hover { background: #6d28d9; }
+.share-btn-home { background: #e2e8f0; color: #475569; }
+.share-btn-home:hover { background: #cbd5e1; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: #1e293b;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+  transition: transform 0.3s;
+  z-index: 9999;
+  white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Lobby title */
+.lobby-title { font-size: 1.3rem; font-weight: 800; color: #1e3a8a; margin-bottom: 4px; }
+.lobby-sub { font-size: 0.9rem; color: #64748b; }
+
+/* Streak indicator */
+.streak { font-size: 0.85rem; color: #f59e0b; font-weight: 700; }
+
+/* Correct answer reveal */
+.answer-reveal {
+  font-size: 0.9rem;
+  color: #15803d;
+  background: #f0fdf4;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  display: none;
+}
+.answer-reveal.show { display: block; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>📝 回覆投訴信互動遊戲</h1>
+  <p>事務紀實文書寫作 · 計時闖關模式 · 共六關</p>
+</header>
+
+<!-- LOBBY -->
+<div id="lobby">
+  <div style="margin-bottom:16px">
+    <div class="lobby-title">選擇關卡開始挑戰</div>
+    <div class="lobby-sub">每關設有計時器，答對得分，答錯扣時！</div>
+  </div>
+  <div class="game-cards" id="game-cards"></div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen">
+  <div class="game-panel">
+    <div class="game-hud">
+      <div class="timer-box" id="timer-box">⏱ <span id="timer-display">60</span>秒</div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+      </div>
+      <div class="q-counter" id="q-counter">第 1 / 10 題</div>
+      <div class="streak" id="streak-display"></div>
+    </div>
+
+    <div class="q-title" id="q-title">選擇題</div>
+    <div class="q-text" id="q-text"></div>
+
+    <!-- MC options -->
+    <div class="options-grid" id="options-grid"></div>
+
+    <!-- Dropdown select -->
+    <div class="select-wrap" id="select-wrap" style="display:none"></div>
+
+    <!-- Drag & Drop -->
+    <div id="drag-section" style="display:none">
+      <div style="font-size:0.85rem;color:#64748b;margin-bottom:8px;">📦 詞庫（拖拉詞語到對應空格）</div>
+      <div class="drag-area" id="drag-area"></div>
+      <div class="drop-zones" id="drop-zones"></div>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+    <div class="answer-reveal" id="answer-reveal"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="submit-btn" onclick="submitAnswer()">確認答案</button>
+      <button class="btn btn-secondary" id="next-btn" onclick="nextQuestion()" style="display:none">下一題 →</button>
+      <button class="btn btn-secondary" onclick="backToLobby()">← 返回選關</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT SCREEN -->
+<div id="result-screen">
+  <div class="result-card">
+    <div class="result-emoji" id="result-emoji">🎉</div>
+    <div class="result-title" id="result-title">闖關完成！</div>
+    <div class="result-score" id="result-score">0 分</div>
+    <div class="result-detail" id="result-detail"></div>
+
+    <div class="share-box">
+      <label>📤 分享此遊戲給同學</label>
+      <div class="share-url-row">
+        <input type="text" id="share-url-input" readonly>
+        <button class="copy-btn" onclick="copyShareUrl()">複製</button>
+      </div>
+    </div>
+
+    <div class="share-btns">
+      <button class="share-btn share-btn-wa" onclick="shareWhatsApp()">💬 WhatsApp 分享</button>
+      <button class="share-btn share-btn-copy" onclick="copyShareUrl()">🔗 複製鏈接</button>
+      <button class="share-btn share-btn-home" onclick="backToLobby()">🏠 返回選關</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// GAME DATA
+// ============================================================
+const GAMES = [
+  {
+    id: 0,
+    title: '基礎知識闖關',
+    desc: '回覆投訴信的寫作要點與格式，10題選擇題',
+    icon: '📚',
+    type: 'mc',
+    badge: 'badge-mc',
+    badgeText: '選擇題',
+    timePerQ: 30,
+    questions: [
+      {
+        q: '回覆投訴信時，以下哪項內容是必不可少的？',
+        opts: ['解釋公司制度，令對方知難而退', '作出反駁、批評', '運用同理心，安撫對方的情緒', '詢問對方如何補救'],
+        ans: 2
+      },
+      {
+        q: '回覆投訴信的標題應如何撰寫？',
+        opts: ['使用「不滿」「惡劣」等字眼，表達事件嚴重性', '力求客觀平實，例如「回覆……事件」或「回覆……問題」', '不需要標題，直接回覆內容', '使用感嘆號，表達重視程度'],
+        ans: 1
+      },
+      {
+        q: '收到投訴信後，應在多少天內回覆？',
+        opts: ['一天內', '三至五天內', '一週內', '兩週內'],
+        ans: 1
+      },
+      {
+        q: '回覆投訴信的下款應包含什麼？',
+        opts: ['只需姓名', '只需職稱', '職稱及姓名，並附啟告語', '只需公司名稱'],
+        ans: 2
+      },
+      {
+        q: '以下哪個是回覆投訴信的正確啟告語？',
+        opts: ['謹此', '謹覆', '謹請', '謹上'],
+        ans: 1
+      },
+      {
+        q: '當投訴人的投訴有理時，回信人應如何處理？',
+        opts: ['否認事件，保護公司形象', '道歉，並提出補償或改善的辦法', '解釋公司制度，令對方知難而退', '要求對方提供更多證據'],
+        ans: 1
+      },
+      {
+        q: '回覆投訴信的中心內容應如何組織？',
+        opts: ['先道歉，再解釋', '先解釋，再道歉，最後提出補救', '引述投訴重點→解釋調查結果→提出相應措施', '先提出補救，再解釋原因'],
+        ans: 2
+      },
+      {
+        q: '以下哪項不屬於回覆投訴信的寫作要點？',
+        opts: ['盡快回覆', '表達同理心', '要求投訴人提供書面證明', '積極跟進或提出補償'],
+        ans: 2
+      },
+      {
+        q: '回覆投訴信宜採用哪種格式，以示誠意？',
+        opts: ['後稱式', '前稱式', '平稱式', '無稱式'],
+        ans: 1
+      },
+      {
+        q: '以下哪個句子屬於「致歉」類型？',
+        opts: ['陳達文先生對本公司之投訴，實欠理據，故恕難接受。', '本公司對於……深表歉意。', '本公司完成的全港電話調查，是以隨機抽樣方式進行的。', '其實，為彌補閣下損失，以受毀貨物總額的兩倍作為最高賠償額，已是極限。'],
+        ans: 1
+      }
+    ]
+  },
+  {
+    id: 1,
+    title: '錯別字辨識',
+    desc: '選出正確的漢字，考驗你的文字功力，10題選擇題',
+    icon: '🔍',
+    type: 'mc',
+    badge: 'badge-mc',
+    badgeText: '選擇題',
+    timePerQ: 25,
+    questions: [
+      {
+        q: '本公司已派員＿＿＿，並將於短期內解決積水的問題。',
+        opts: ['瞰察', '坎察', '勘察', '堪察'],
+        ans: 2
+      },
+      {
+        q: '對《香港新晚報》的不實＿＿＿，本公司深感憤怒並保留一切追究的權利。',
+        opts: ['佈道', '報道', '報導', '報到'],
+        ans: 1
+      },
+      {
+        q: '有謠言指公司將有大規模的裁員行動，以致公司內近日＿＿＿。',
+        opts: ['人心惶惶', '人心簧簧', '人心遑遑', '人心煌煌'],
+        ans: 0
+      },
+      {
+        q: '本協會決定＿＿＿他所有獎項。',
+        opts: ['遞奪', '篪奪', '傂奪', '褫奪'],
+        ans: 3
+      },
+      {
+        q: '本公司絕不容許員工＿＿＿，應付了事。',
+        opts: ['敷衍失責', '敷衍塞責', '敷衍室責', '敷衍飾責'],
+        ans: 1
+      },
+      {
+        q: '閣下要求的服務，並不在本公司業務＿＿＿之內，故未能為閣下提供服務。',
+        opts: ['範酬', '範壽', '範疇', '範籌'],
+        ans: 2
+      },
+      {
+        q: '貴公司提供的貨品＿＿＿，實有欺騙顧客之嫌。',
+        opts: ['良誘不齊', '良瘦不齊', '良秀不齊', '良莠不齊'],
+        ans: 3
+      },
+      {
+        q: '若由此＿＿＿本公司蒙受損失，後果將由貴公司承擔。',
+        opts: ['導致', '導至', '導緻', '道至'],
+        ans: 0
+      },
+      {
+        q: '本公司＿＿＿，不會提供特別優待予個別員工。',
+        opts: ['一視同仁', '一視同人', '一視仝人', '一視同仝'],
+        ans: 0
+      },
+      {
+        q: '閣下來函＿＿＿收悉。',
+        opts: ['己經', '以經', '已經', '巳經'],
+        ans: 2
+      }
+    ]
+  },
+  {
+    id: 2,
+    title: '文言詞語配對',
+    desc: '拖拉文言詞語到對應的解釋，10題拖拉配對',
+    icon: '🏮',
+    type: 'drag-match',
+    badge: 'badge-drag',
+    badgeText: '拖拉配對',
+    timePerQ: 35,
+    questions: [
+      { q: '「從來都是這樣」的文言詞語是？', answer: '一貫', choices: ['一貫', '奉悉', '查覆', '不日'] },
+      { q: '「您的來信」（敬詞）的文言詞語是？', answer: '大函', choices: ['大函', '頃接', '此覆', '函告'] },
+      { q: '「原諒」的文言詞語是？', answer: '原宥', choices: ['原宥', '殊感抱歉', '尚祈', '收悉'] },
+      { q: '「感到十分抱歉」的文言詞語是？', answer: '殊感抱歉', choices: ['殊感抱歉', '函覆', '承蒙', '頃接'] },
+      { q: '「收到後知道」的文言詞語是？', answer: '收悉', choices: ['收悉', '業已', '茲將', '尚望'] },
+      { q: '「以信函回覆」的文言詞語是？', answer: '函覆', choices: ['函覆', '特此', '此覆', '奉還'] },
+      { q: '「剛剛接到」的文言詞語是？', answer: '頃接', choices: ['頃接', '不符', '即予', '一貫'] },
+      { q: '「調查後回覆」的文言詞語是？', answer: '查覆', choices: ['查覆', '奉悉', '大函', '不日'] },
+      { q: '「不消數日」的文言詞語是？', answer: '不日', choices: ['不日', '業已', '尚祈', '收悉'] },
+      { q: '「已經」的文言詞語是？', answer: '業已', choices: ['業已', '茲將', '尚望', '特此'] }
+    ]
+  },
+  {
+    id: 3,
+    title: '文言填充高手',
+    desc: '從詞庫中拖拉正確文言詞語填入句子空格，10題',
+    icon: '✍️',
+    type: 'drag-fill',
+    badge: 'badge-drag',
+    badgeText: '拖拉填充',
+    timePerQ: 40,
+    questions: [
+      { q: '有關閣下之投訴，＿＿＿查明屬實，本公司深表歉意。', answer: '業已', choices: ['業已', '大函', '尚望', '承蒙', '特此', '不日'] },
+      { q: '八月十八日＿＿＿收悉。', answer: '大函', choices: ['業已', '大函', '尚望', '承蒙', '特此', '不日'] },
+      { q: '因天氣惡劣導致工程延期，＿＿＿貴公司見諒。', answer: '尚望', choices: ['業已', '大函', '尚望', '承蒙', '特此', '不日'] },
+      { q: '＿＿＿閣下惠顧，本公司深表謝意。', answer: '承蒙', choices: ['業已', '大函', '尚望', '承蒙', '特此', '不日'] },
+      { q: '因參賽隊伍不足，校際高爾夫球比賽將會取消，＿＿＿函告。', answer: '特此', choices: ['業已', '大函', '尚望', '承蒙', '特此', '不日'] },
+      { q: '閣下訂購的貨品，將＿＿＿送到府上。', answer: '不日', choices: ['業已', '大函', '尚望', '承蒙', '特此', '不日'] },
+      { q: '本公司將於明日＿＿＿所借車輛。', answer: '奉還', choices: ['奉還', '不符', '即予', '茲將', '此覆', '函覆'] },
+      { q: '閣下之申請＿＿＿公司規定，故未能批准。', answer: '不符', choices: ['奉還', '不符', '即予', '茲將', '此覆', '函覆'] },
+      { q: '若查明屬實，＿＿＿革職查辦。', answer: '即予', choices: ['奉還', '不符', '即予', '茲將', '此覆', '函覆'] },
+      { q: '現＿＿＿調查結果，函告如下。', answer: '茲將', choices: ['奉還', '不符', '即予', '茲將', '此覆', '函覆'] }
+    ]
+  },
+  {
+    id: 4,
+    title: '案例分析：奇香美食',
+    desc: '根據顧客投訴案例，選出正確的回覆策略，10題',
+    icon: '🍜',
+    type: 'mc',
+    badge: 'badge-mc',
+    badgeText: '選擇題',
+    timePerQ: 30,
+    questions: [
+      {
+        q: '顧客陳正義的投訴信寄給誰？',
+        opts: ['奇趣樂園', '美新集團公關部主任', '奇香美食收銀員', '消費者委員會'],
+        ans: 1
+      },
+      {
+        q: '回信的發文者（署名人）是誰？',
+        opts: ['路路', '王大智', '阮小祥', '陳正義'],
+        ans: 1
+      },
+      {
+        q: '陳正義的投訴共有幾個主要問題？',
+        opts: ['1個', '2個', '3個', '4個'],
+        ans: 2
+      },
+      {
+        q: '關於「拒收小面額硬幣」的投訴，調查後發現：',
+        opts: ['完全是收銀員的錯誤', '根據香港法例，以面額小於1元的硬幣付款，所支付的款額不得超逾2元', '公司沒有相關規定', '收銀員故意刁難顧客'],
+        ans: 1
+      },
+      {
+        q: '對於「職員插隊」的投訴，公司採取了什麼跟進措施？',
+        opts: ['解僱插隊的職員', '張貼告示，提醒所有員工不得插隊', '不作任何處理', '要求投訴人道歉'],
+        ans: 1
+      },
+      {
+        q: '對於「服務態度惡劣」的投訴，公司採取了什麼措施？',
+        opts: ['解僱收銀員路路', '向路路發出口頭警告', '不作任何處理', '要求路路向顧客賠償'],
+        ans: 1
+      },
+      {
+        q: '以下哪項不適合置於回信內容？',
+        opts: ['多人排隊時內部員工不能插隊', '很多零售商店及街市商販都不收一毛、兩毛的硬幣', '本集團已向員工重申公司規定', '本集團會定期對員工進行培訓'],
+        ans: 1
+      },
+      {
+        q: '以下哪個詞語最適合用來轉述投訴事項，以淡化負面意思？',
+        opts: ['投訴', '指責', '表示', '聲稱'],
+        ans: 2
+      },
+      {
+        q: '適當的回信日期應是哪一個？（投訴信日期為5月9日）',
+        opts: ['二零二五年五月十二日', '二零二五年五月八日', '二零二五年六月九日', '二零二五年五月九日'],
+        ans: 0
+      },
+      {
+        q: '有哪項投訴是可以通過解釋說明，消除對方的誤會？',
+        opts: ['食物製作馬虎', '拒收小面額硬幣', '收銀員冷言冷語、態度欠佳', '收銀員讓熟人插隊買餐券'],
+        ans: 1
+      }
+    ]
+  },
+  {
+    id: 5,
+    title: '段落結構排列',
+    desc: '將回覆投訴信的段落元素拖拉到正確位置，8題',
+    icon: '🗂️',
+    type: 'drag-order',
+    badge: 'badge-drag',
+    badgeText: '拖拉排序',
+    timePerQ: 45,
+    questions: [
+      {
+        q: '以下哪個部分應出現在回覆投訴信的「信首語」中？',
+        answer: '感謝致函，深表關注或表示歉意，簡要說明已進行調查',
+        choices: [
+          '感謝致函，深表關注或表示歉意，簡要說明已進行調查',
+          '針對投訴事項逐點回應',
+          '重申機構立場或服務宗旨',
+          '提供進一步查詢的辦法'
+        ]
+      },
+      {
+        q: '回覆投訴信的「中心內容」每段應如何組織？',
+        answer: '引述投訴重點→解釋調查結果→提出相應措施',
+        choices: [
+          '先道歉→再解釋→提出補救',
+          '引述投訴重點→解釋調查結果→提出相應措施',
+          '先解釋→再道歉→提出補救',
+          '先提出補救→再解釋原因'
+        ]
+      },
+      {
+        q: '「結尾語」中應包含哪項內容？',
+        answer: '重申機構立場或服務宗旨，維護公司形象',
+        choices: [
+          '引述對方的投訴事項',
+          '重申機構立場或服務宗旨，維護公司形象',
+          '解釋調查結果',
+          '要求對方提供更多資料'
+        ]
+      },
+      {
+        q: '以下哪個結束語最適合用於回覆投訴信？',
+        answer: '專此回覆',
+        choices: ['此致敬禮', '專此回覆', '順頌商祺', '謹此通知']
+      },
+      {
+        q: '若投訴人的投訴無理，回信人應如何處理？',
+        answer: '耐心有禮地解釋事件始末，或援用官方指引，希望對方諒解',
+        choices: [
+          '直接拒絕，無需解釋',
+          '耐心有禮地解釋事件始末，或援用官方指引，希望對方諒解',
+          '要求對方道歉',
+          '轉介至法律部門處理'
+        ]
+      },
+      {
+        q: '在回覆投訴信中，「同理心」的表達方式是？',
+        answer: '站在投訴人的立場，設身處地思考問題，讓對方感受到「我在乎你」',
+        choices: [
+          '告訴對方公司制度不能更改',
+          '站在投訴人的立場，設身處地思考問題，讓對方感受到「我在乎你」',
+          '要求對方提供書面投訴',
+          '解釋公司的服務宗旨'
+        ]
+      },
+      {
+        q: '回覆投訴信的語氣應如何？',
+        answer: '禮貌、客氣，保持正面語氣，即使拒絕要求也要有禮',
+        choices: [
+          '強硬、直接，清楚表明立場',
+          '禮貌、客氣，保持正面語氣，即使拒絕要求也要有禮',
+          '謙卑，無條件接受所有投訴',
+          '中立，不表達任何立場'
+        ]
+      },
+      {
+        q: '以下哪項屬於「積極跟進或提出補償」的例子？',
+        answer: '送出優惠券，或提出強化員工培訓等改善方法',
+        choices: [
+          '解釋事件始末，不作任何補償',
+          '送出優惠券，或提出強化員工培訓等改善方法',
+          '要求投訴人接受公司的解釋',
+          '轉介至其他部門處理'
+        ]
+      }
+    ]
+  }
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let currentGame = null;
+let currentQIndex = 0;
+let score = 0;
+let streak = 0;
+let maxStreak = 0;
+let timerInterval = null;
+let timeLeft = 0;
+let answered = false;
+let totalTime = 0;
+let timeUsed = 0;
+
+// Drag state
+let draggedItem = null;
+let draggedFrom = null; // 'pool' or 'zone'
+let draggedFromIndex = null;
+
+// ============================================================
+// LOBBY
+// ============================================================
+function renderLobby() {
+  document.getElementById('lobby').style.display = 'block';
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'none';
+
+  const container = document.getElementById('game-cards');
+  container.innerHTML = '';
+  GAMES.forEach((g, i) => {
+    const card = document.createElement('div');
+    card.className = 'game-card';
+    card.innerHTML = `
+      <div class="icon">${g.icon}</div>
+      <h3>關卡 ${i+1}：${g.title}</h3>
+      <p>${g.desc}</p>
+      <span class="badge ${g.badge}">${g.badgeText}</span>
+    `;
+    card.onclick = () => startGame(i);
+    container.appendChild(card);
+  });
+}
+
+function backToLobby() {
+  clearInterval(timerInterval);
+  renderLobby();
+}
+
+// ============================================================
+// GAME START
+// ============================================================
+function startGame(gameIndex) {
+  currentGame = GAMES[gameIndex];
+  currentQIndex = 0;
+  score = 0;
+  streak = 0;
+  maxStreak = 0;
+  totalTime = currentGame.questions.length * currentGame.timePerQ;
+  timeUsed = 0;
+
+  document.getElementById('lobby').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'block';
+
+  renderQuestion();
+}
+
+// ============================================================
+// RENDER QUESTION
+// ============================================================
+function renderQuestion() {
+  answered = false;
+  const q = currentGame.questions[currentQIndex];
+  const total = currentGame.questions.length;
+
+  // HUD
+  document.getElementById('q-counter').textContent = `第 ${currentQIndex+1} / ${total} 題`;
+  document.getElementById('progress-bar').style.width = `${(currentQIndex/total)*100}%`;
+  updateStreak();
+
+  // Question text
+  document.getElementById('q-title').textContent = currentGame.type === 'mc' ? '選擇題' :
+    currentGame.type === 'drag-fill' ? '拖拉填充' :
+    currentGame.type === 'drag-match' ? '配對選擇' : '結構分析';
+  document.getElementById('q-text').textContent = q.q;
+
+  // Hide all input areas
+  document.getElementById('options-grid').style.display = 'none';
+  document.getElementById('options-grid').innerHTML = '';
+  document.getElementById('select-wrap').style.display = 'none';
+  document.getElementById('select-wrap').innerHTML = '';
+  document.getElementById('drag-section').style.display = 'none';
+
+  // Feedback
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback';
+  fb.textContent = '';
+  document.getElementById('answer-reveal').className = 'answer-reveal';
+  document.getElementById('answer-reveal').textContent = '';
+
+  // Buttons
+  document.getElementById('submit-btn').style.display = 'inline-block';
+  document.getElementById('next-btn').style.display = 'none';
+
+  if (currentGame.type === 'mc') {
+    renderMC(q);
+  } else if (currentGame.type === 'drag-match' || currentGame.type === 'drag-order') {
+    renderDragMatch(q);
+  } else if (currentGame.type === 'drag-fill') {
+    renderDragFill(q);
+  }
+
+  startTimer();
+}
+
+// ============================================================
+// MC
+// ============================================================
+function renderMC(q) {
+  const grid = document.getElementById('options-grid');
+  grid.style.display = 'grid';
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = `${String.fromCharCode(65+i)}. ${opt}`;
+    btn.dataset.index = i;
+    btn.onclick = () => selectMC(i);
+    grid.appendChild(btn);
+  });
+}
+
+function selectMC(index) {
+  if (answered) return;
+  document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.option-btn')[index].classList.add('selected');
+}
+
+// ============================================================
+// DRAG MATCH (single choice with drag-like UI)
+// ============================================================
+function renderDragMatch(q) {
+  const grid = document.getElementById('options-grid');
+  grid.style.display = 'grid';
+  const shuffled = [...q.choices].sort(() => Math.random() - 0.5);
+  shuffled.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = `${String.fromCharCode(65+i)}. ${opt}`;
+    btn.dataset.value = opt;
+    btn.onclick = () => {
+      document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    };
+    grid.appendChild(btn);
+  });
+}
+
+// ============================================================
+// DRAG FILL
+// ============================================================
+function renderDragFill(q) {
+  const section = document.getElementById('drag-section');
+  section.style.display = 'block';
+
+  const pool = document.getElementById('drag-area');
+  pool.innerHTML = '';
+  const zones = document.getElementById('drop-zones');
+  zones.innerHTML = '';
+
+  // Shuffle choices
+  const shuffled = [...q.choices].sort(() => Math.random() - 0.5);
+
+  shuffled.forEach(word => {
+    const item = document.createElement('div');
+    item.className = 'drag-item';
+    item.textContent = word;
+    item.draggable = true;
+    item.dataset.word = word;
+    item.addEventListener('dragstart', onDragStart);
+    item.addEventListener('dragend', onDragEnd);
+    pool.appendChild(item);
+  });
+
+  // Single drop zone
+  const row = document.createElement('div');
+  row.className = 'drop-zone-row';
+
+  const label = document.createElement('div');
+  label.className = 'drop-zone-label';
+  label.textContent = '答：';
+
+  const zone = document.createElement('div');
+  zone.className = 'drop-zone';
+  zone.dataset.zoneIndex = 0;
+  zone.textContent = '將詞語拖拉到此處';
+  zone.addEventListener('dragover', onDragOver);
+  zone.addEventListener('dragleave', onDragLeave);
+  zone.addEventListener('drop', onDrop);
+
+  row.appendChild(label);
+  row.appendChild(zone);
+  zones.appendChild(row);
+}
+
+// Drag events
+function onDragStart(e) {
+  draggedItem = e.target;
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onDragEnd(e) {
+  e.target.classList.remove('dragging');
+}
+function onDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+function onDrop(e) {
+  e.preventDefault();
+  const zone = e.currentTarget;
+  zone.classList.remove('drag-over');
+  if (!draggedItem) return;
+
+  // Return previous item to pool if zone was filled
+  const prev = zone.dataset.filledWord;
+  if (prev) {
+    const pool = document.getElementById('drag-area');
+    const restored = document.createElement('div');
+    restored.className = 'drag-item';
+    restored.textContent = prev;
+    restored.draggable = true;
+    restored.dataset.word = prev;
+    restored.addEventListener('dragstart', onDragStart);
+    restored.addEventListener('dragend', onDragEnd);
+    pool.appendChild(restored);
+  }
+
+  const word = draggedItem.dataset.word;
+  zone.textContent = word;
+  zone.dataset.filledWord = word;
+  zone.classList.add('filled');
+  draggedItem.remove();
+}
+
+// ============================================================
+// SUBMIT
+// ============================================================
+function submitAnswer() {
+  if (answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+
+  const q = currentGame.questions[currentQIndex];
+  let isCorrect = false;
+
+  if (currentGame.type === 'mc') {
+    const selected = document.querySelector('.option-btn.selected');
+    if (!selected) {
+      showToast('請先選擇答案！');
+      answered = false;
+      startTimer();
+      return;
+    }
+    const selectedIndex = parseInt(selected.dataset.index);
+    isCorrect = selectedIndex === q.ans;
+
+    document.querySelectorAll('.option-btn').forEach((btn, i) => {
+      if (i === q.ans) btn.classList.add('correct');
+      else if (i === selectedIndex && !isCorrect) btn.classList.add('wrong');
+    });
+
+  } else if (currentGame.type === 'drag-match' || currentGame.type === 'drag-order') {
+    const selected = document.querySelector('.option-btn.selected');
+    if (!selected) {
+      showToast('請先選擇答案！');
+      answered = false;
+      startTimer();
+      return;
+    }
+    isCorrect = selected.dataset.value === q.answer;
+    document.querySelectorAll('.option-btn').forEach(btn => {
+      if (btn.dataset.value === q.answer) btn.classList.add('correct');
+      else if (btn.classList.contains('selected') && !isCorrect) btn.classList.add('wrong');
+    });
+
+  } else if (currentGame.type === 'drag-fill') {
+    const zone = document.querySelector('.drop-zone');
+    if (!zone || !zone.dataset.filledWord) {
+      showToast('請先拖拉詞語到空格！');
+      answered = false;
+      startTimer();
+      return;
+    }
+    isCorrect = zone.dataset.filledWord === q.answer;
+    if (isCorrect) zone.classList.add('correct');
+    else zone.classList.add('wrong');
+  }
+
+  // Score
+  if (isCorrect) {
+    score += 10;
+    streak++;
+    if (streak > maxStreak) maxStreak = streak;
+    if (streak >= 3) score += 2; // bonus
+    showFeedback(true, streak >= 3 ? `🔥 答對！連續 ${streak} 題！+2 連勝加分` : '✅ 答對！+10 分');
+  } else {
+    streak = 0;
+    showFeedback(false, `❌ 答錯！正確答案：${currentGame.type === 'mc' ? q.opts[q.ans] : q.answer}`);
+    showAnswerReveal(currentGame.type === 'mc' ? q.opts[q.ans] : q.answer);
+  }
+
+  updateStreak();
+
+  document.getElementById('submit-btn').style.display = 'none';
+  document.getElementById('next-btn').style.display = 'inline-block';
+  document.getElementById('next-btn').textContent =
+    currentQIndex + 1 >= currentGame.questions.length ? '查看成績 🏆' : '下一題 →';
+}
+
+// ============================================================
+// NEXT QUESTION
+// ============================================================
+function nextQuestion() {
+  currentQIndex++;
+  if (currentQIndex >= currentGame.questions.length) {
+    showResults();
+  } else {
+    renderQuestion();
+  }
+}
+
+// ============================================================
+// TIMER
+// ============================================================
+function startTimer() {
+  clearInterval(timerInterval);
+  timeLeft = currentGame.timePerQ;
+  updateTimerDisplay();
+
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    timeUsed++;
+    updateTimerDisplay();
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      if (!answered) {
+        answered = true;
+        const q = currentGame.questions[currentQIndex];
+        showFeedback(false, `⏰ 時間到！正確答案：${currentGame.type === 'mc' ? q.opts[q.ans] : q.answer}`);
+        showAnswerReveal(currentGame.type === 'mc' ? q.opts[q.ans] : q.answer);
+        streak = 0;
+        updateStreak();
+        document.getElementById('submit-btn').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'inline-block';
+        document.getElementById('next-btn').textContent =
+          currentQIndex + 1 >= currentGame.questions.length ? '查看成績 🏆' : '下一題 →';
+      }
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const box = document.getElementById('timer-box');
+  const display = document.getElementById('timer-display');
+  display.textContent = timeLeft;
+  if (timeLeft <= 10) box.classList.add('danger');
+  else box.classList.remove('danger');
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function showFeedback(correct, msg) {
+  const fb = document.getElementById('feedback');
+  fb.textContent = msg;
+  fb.className = 'feedback show ' + (correct ? 'correct' : 'wrong');
+}
+
+function showAnswerReveal(answer) {
+  const el = document.getElementById('answer-reveal');
+  el.textContent = `💡 正確答案：${answer}`;
+  el.className = 'answer-reveal show';
+}
+
+function updateStreak() {
+  const el = document.getElementById('streak-display');
+  if (streak >= 2) el.textContent = `🔥 連勝 ${streak}`;
+  else el.textContent = '';
+}
+
+// ============================================================
+// RESULTS
+// ============================================================
+function showResults() {
+  clearInterval(timerInterval);
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'block';
+
+  const total = currentGame.questions.length;
+  const maxScore = total * 10;
+  const pct = Math.round((score / maxScore) * 100);
+
+  let emoji = '😔';
+  let title = '繼續努力！';
+  if (pct >= 90) { emoji = '🏆'; title = '滿分高手！'; }
+  else if (pct >= 70) { emoji = '🎉'; title = '表現優秀！'; }
+  else if (pct >= 50) { emoji = '👍'; title = '繼續加油！'; }
+
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-score').textContent = `${score} 分`;
+  document.getElementById('result-detail').textContent =
+    `${total} 題中答對 ${Math.round(score/10)} 題 · 最高連勝 ${maxStreak} 題 · 用時 ${timeUsed} 秒`;
+
+  // Share URL
+  const shareUrl = buildShareUrl();
+  document.getElementById('share-url-input').value = shareUrl;
+}
+
+function buildShareUrl() {
+  const base = window.location.href.split('?')[0].split('#')[0];
+  return `${base}?game=${currentGame.id}`;
+}
+
+function copyShareUrl() {
+  const input = document.getElementById('share-url-input');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(input.value).then(() => showToast('✅ 鏈接已複製！'));
+  } else {
+    input.select();
+    document.execCommand('copy');
+    showToast('✅ 鏈接已複製！');
+  }
+}
+
+function shareWhatsApp() {
+  const url = buildShareUrl();
+  const text = encodeURIComponent(`📝 回覆投訴信互動遊戲 - ${currentGame.title}\n我得了 ${score} 分！快來挑戰：${url}`);
+  window.open(`https://wa.me/?text=${text}`, '_blank');
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ============================================================
+// URL PARAM: auto-start game
+// ============================================================
+function checkUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  const gameId = params.get('game');
+  if (gameId !== null) {
+    const idx = parseInt(gameId);
+    if (!isNaN(idx) && idx >= 0 && idx < GAMES.length) {
+      startGame(idx);
+      return;
+    }
+  }
+  renderLobby();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = checkUrlParams;
+</script>
+</body>
+</html>
